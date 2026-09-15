@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "provider": "vertex",
+  "project_id": "your-gcp-project-id",
+  "location": "global",
+  "model": {
+    "default": "gemini-3-pro-image"
+  },
+  "output": {
+    "directory": "./generated",
+    "overwrite": false
+  },
+  "http_timeout": 180,
+  "credentials": {
+    "source": "auto"
+  },
+  "auth": {
+    "type": "service_account",
+    "credentials_file": "config/gcp-service-account.json"
+  }
+}

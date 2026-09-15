@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "provider": "gemini",
+  "api_key": "YOUR_GEMINI_API_KEY_HERE",
+  "model": {
+    "default": "gemini-3-pro-image"
+  },
+  "output": {
+    "directory": "./generated",
+    "overwrite": false
+  },
+  "http_timeout": 180,
+  "credentials": {
+    "source": "auto"
+  }
+}
