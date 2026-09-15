@@ -1,0 +1,5 @@
+# The build runs under Linux/WSL even when the checkout is on Windows, so
+# source and scripts must stay LF on disk.
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.png binary

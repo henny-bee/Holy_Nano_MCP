@@ -1,0 +1,29 @@
+# Credentials - never commit
+service-account.json
+*-service-account.json
+gcp-service-account.json
+*.key
+*.pem
+.env
+.env.*
+!.env.example
+
+# Build output
+build/
+*.o
+*.a
+*.so
+*.s
+
+# Generated images
+generated/*
+!generated/.gitkeep
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+
+# Python bytecode from the mock API server
+__pycache__/
+*.pyc
