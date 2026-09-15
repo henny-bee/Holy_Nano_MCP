@@ -13,6 +13,12 @@ An MCP (Model Context Protocol) server written in HolyC for Google's Nano Banana
 
 ---
 
+## Requirements
+
+WSL2 with Ubuntu and `curl` (Windows hosts), `hcc` for building (`make toolchain`), and Python 3.8+ with `aiohttp` (`pip install aiohttp`) for the SSE bridge only.
+
+---
+
 ## Quick Setup
 
 ### Windows (Automated CLI)
@@ -82,6 +88,8 @@ Add to your MCP settings file (`cline_mcp_settings.json` or `claude_desktop_conf
 ```
 
 ### Method 2: Direct Stdio Command
+
+On Windows both paths are read by WSL, so they must be WSL paths (`/mnt/d/projects/HOLY_NANO_MCP/...`), not `D:\...`.
 
 ```json
 {
