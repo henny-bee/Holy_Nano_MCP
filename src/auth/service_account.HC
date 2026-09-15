@@ -28,7 +28,7 @@ I64 SaInspect(U8 *path, Json **out_doc)
   if (!PathExists(path)) return SA_KIND_MISSING;
 
   I64 size = 0;
-  U8 *raw = FileRead(path, &size);
+  U8 *raw = ReadFdFile(path, &size);
   if (!raw || size <= 0) return SA_KIND_INVALID;
 
   Json *doc = JsonParse(raw, size);
