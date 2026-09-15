@@ -311,6 +311,10 @@ U0 TestValidation()
 
 U0 TestFakeProviderPipeline()
 {
+  /* Overwrite protection renames around files that already exist, so a run
+   * that inherits the previous run's output asserts against pipeline-2.png. */
+  System("rm -rf /tmp/holy-nano-mcp-fixtures/out");
+
   HnConfig *c = CfgNew();
   CfgSet(&c->provider_name, "fake");
   CfgSet(&c->output_dir, "/tmp/holy-nano-mcp-fixtures/out");
