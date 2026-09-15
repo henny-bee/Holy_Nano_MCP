@@ -23,6 +23,7 @@ extern "c" U0 exit(I32 status);
 #define W_OK 2
 
 #define MODE_0600 0x180 /* rw------- */
+#define MODE_0644 0x1A4 /* rw-r--r-- */
 #define MODE_0700 0x1C0 /* rwx------ */
 #define MODE_0755 0x1ED /* rwxr-xr-x */
 
@@ -32,15 +33,14 @@ Bool PathExists(U8 *path)
   return access(path, F_OK) == 0;
 }
 
-/* Reads a whole file through raw descriptors. FileRead sizes a file with
- * stat, which reports 0 for procfs, so anything under /proc needs this. */
+
 U8 *ReadFdFile(U8 *path, I64 *out_len)
 {
   *out_len = 0;
-  I32 fd = open(path, 0);
+  I32 fd = open(path, O_RDONLY);
   if (fd < 0) return NULL;
 
-  I64 cap = 4096;
+  I64 cap = 65536;
   I64 len = 0;
   U8 *buf = MAlloc(cap);
   while (TRUE) {
@@ -61,13 +61,26 @@ U8 *ReadFdFile(U8 *path, I64 *out_len)
   return buf;
 }
 
+
+Bool WriteFdFile(U8 *path, U8 *data, I64 len, I64 mode=MODE_0644)
+{
+  if (!path) return FALSE;
+  I32 fd = open(path, O_CREAT | O_WRONLY | O_TRUNC, mode);
+  if (fd < 0) return FALSE;
+
+  I64 written = 0;
+  while (written < len) {
+    I64 n = write(fd, data + written, len - written);
+    if (n <= 0) { close(fd); return FALSE; }
+    written += n;
+  }
+  close(fd);
+  return TRUE;
+}
+
 I64 g_shell_seq = 0;
 
-/* Runs a shell command and returns its stdout.
- *
- * The stdlib Shlurp exists, but it spools through a fixed world-readable path
- * (/tmp/__hcc_shell_out.txt). Access tokens go through here, so this uses a
- * private 0700 directory and a 0600 file, removed afterwards. */
+
 U8 *ShellCapture(U8 *cmd, I64 *out_len)
 {
   *out_len = 0;
@@ -82,7 +95,7 @@ U8 *ShellCapture(U8 *cmd, I64 *out_len)
   chmod(out_path, MODE_0600);
 
   I64 len = 0;
-  U8 *raw = FileRead(out_path, &len);
+  U8 *raw = ReadFdFile(out_path, &len);
 
   U8 *cleanup = StrPrint(NULL, "rm -rf %s", dir);
   System(cleanup);
