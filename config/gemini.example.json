@@ -9,6 +9,10 @@
     "directory": "./generated",
     "overwrite": false
   },
+  "system_prompts": {
+    "directory": "./system_prompts",
+    "enabled": true
+  },
   "http_timeout": 180,
   "credentials": {
     "source": "auto"

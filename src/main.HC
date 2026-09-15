@@ -8,6 +8,7 @@
  *   auth       -> utils
  *   image      -> utils
  *   providers  -> auth, http, image
+ *   prompts    -> auth, image, providers/provider
  *   mcp        -> providers, image
  */
 
@@ -31,6 +32,9 @@
 
 #include "./providers/models.HC"
 #include "./providers/provider.HC"
+
+#include "./prompts/system_prompt.HC"
+
 #include "./providers/google_common.HC"
 #include "./providers/gemini.HC"
 #include "./providers/vertex.HC"
@@ -61,6 +65,8 @@ U8 *USAGE =
   "  --model <alias|id>          Default model (default nano-banana-2)\n"
   "  --output-dir <path>         Where images are written (default ./generated)\n"
   "  --overwrite                 Replace existing files instead of suffixing\n"
+  "  --system-prompt-dir <path>  Folder of per-mode .md prompts (default ./system_prompts)\n"
+  "  --no-system-prompts         Send no system prompt at all\n"
   "  --project-id <id>           Vertex project\n"
   "  --location <region>         Vertex location (default global)\n"
   "  --api-style <style>         interactions | generate_content\n"

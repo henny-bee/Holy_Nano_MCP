@@ -13,6 +13,8 @@ class ImageRequest
   U8 *mime_type;     /* desired output mime, optional */
   U8 *input_b64;     /* edit input, base64; NULL for generation */
   U8 *input_mime;
+  U8 *system_prompt;        /* house style; filled in by the prompts layer */
+  U8 *system_prompt_source; /* the file it came from, for reporting */
 };
 
 ImageRequest *ImageRequestNew()
@@ -25,6 +27,8 @@ ImageRequest *ImageRequestNew()
   r->mime_type = NULL;
   r->input_b64 = NULL;
   r->input_mime = NULL;
+  r->system_prompt = NULL;
+  r->system_prompt_source = NULL;
   return r;
 }
 
@@ -38,6 +42,8 @@ U0 ImageRequestRelease(ImageRequest *r)
   if (r->mime_type) Free(r->mime_type);
   if (r->input_b64) Free(r->input_b64);
   if (r->input_mime) Free(r->input_mime);
+  if (r->system_prompt) Free(r->system_prompt);
+  if (r->system_prompt_source) Free(r->system_prompt_source);
   Free(r);
 }
 

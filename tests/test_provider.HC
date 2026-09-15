@@ -19,6 +19,7 @@
 #include "../src/image/files.HC"
 #include "../src/providers/models.HC"
 #include "../src/providers/provider.HC"
+#include "../src/prompts/system_prompt.HC"
 #include "../src/providers/google_common.HC"
 #include "../src/providers/gemini.HC"
 #include "../src/providers/vertex.HC"

@@ -26,6 +26,8 @@ class HnConfig
   I64 repo_cred_kind;
   I64 http_timeout;
   U8 *log_level;
+  U8 *system_prompt_dir;       /* folder of per-mode .md prompts */
+  I64 system_prompts_enabled;  /* -1 until a source says; 1 by default */
 };
 
 U0 CfgSet(U8 **slot, U8 *value)
@@ -62,6 +64,8 @@ HnConfig *CfgNew()
   c->repo_cred_kind = SA_KIND_MISSING;
   c->http_timeout = 180;
   c->log_level = NULL;
+  c->system_prompt_dir = NULL;
+  c->system_prompts_enabled = -1;
   return c;
 }
 
@@ -149,6 +153,17 @@ U0 CfgApplyDoc(HnConfig *c, Json *doc)
     }
   }
 
+  /* An absent `enabled` key must not count as `false`, so the field is only
+   * decided once a document actually carries it. */
+  Json *prompts = JObjField(doc, "system_prompts");
+  if (prompts) {
+    CfgFill(&c->system_prompt_dir, JStr(prompts, "directory", NULL));
+    if (JField(prompts, "enabled") != NULL && c->system_prompts_enabled < 0) {
+      if (JBool(prompts, "enabled", TRUE)) c->system_prompts_enabled = 1;
+      else c->system_prompts_enabled = 0;
+    }
+  }
+
   I64 timeout = JInt(doc, "http_timeout", 0);
   if (timeout > 0) c->http_timeout = timeout;
 }
@@ -217,7 +232,9 @@ HnConfig *CfgLoad()
   CfgSet(&c->api_style,     ArgValue("api-style"));
   CfgSet(&c->endpoint,      ArgValue("endpoint"));
   CfgSet(&c->log_level,     ArgValue("log-level"));
+  CfgSet(&c->system_prompt_dir, ArgValue("system-prompt-dir"));
   if (ArgFlag("overwrite")) c->overwrite = TRUE;
+  if (ArgFlag("no-system-prompts")) c->system_prompts_enabled = 0;
   U8 *src_flag = ArgValue("credentials-source");
   if (src_flag) c->credentials_source = CfgSourceFromName(src_flag);
 
@@ -244,6 +261,7 @@ HnConfig *CfgLoad()
   CfgFill(&c->default_model, EnvOrNull("HOLY_NANO_MCP_MODEL"));
   CfgFill(&c->output_dir,    EnvOrNull("HOLY_NANO_MCP_OUTPUT_DIR"));
   CfgFill(&c->log_level,     EnvOrNull("HOLY_NANO_MCP_LOG_LEVEL"));
+  CfgFill(&c->system_prompt_dir, EnvOrNull("HOLY_NANO_MCP_SYSTEM_PROMPT_DIR"));
   CfgFill(&c->project_id,    EnvOrNull("GOOGLE_CLOUD_PROJECT"));
   CfgFill(&c->location,      EnvOrNull("GOOGLE_CLOUD_LOCATION"));
 
@@ -304,6 +322,7 @@ HnConfig *CfgLoad()
   CfgFill(&c->location,      "global");
   CfgFill(&c->api_version,   "v1beta");
   CfgFill(&c->api_style,     "interactions");
+  if (c->system_prompts_enabled < 0) c->system_prompts_enabled = 1;
 
   if (c->log_level) LogSetLevelName(c->log_level);
   return c;

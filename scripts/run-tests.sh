@@ -31,7 +31,7 @@ fi
 pass "server builds"
 
 note "unit tests"
-for t in test_json test_mcp test_auth test_provider; do
+for t in test_json test_mcp test_auth test_provider test_prompts; do
   if ! hcc "tests/$t.HC" -o "build/$t" >"build/$t.log" 2>&1; then
     grep -v WARNING "build/$t.log" | tail -20
     fail "$t compiles"

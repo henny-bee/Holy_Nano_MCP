@@ -226,8 +226,18 @@ async def handle_messages(request: web.Request) -> web.Response:
 
     # The server frames on newlines, so a pretty-printed request has to be
     # collapsed back onto one line or it arrives as several broken messages.
+    #
+    # ensure_ascii=False is load-bearing: the server's JSON parser has no
+    # \uXXXX support, so the default would turn every non-ASCII character the
+    # client sent - an em dash, an accent, an emoji - into an escape the server
+    # rejects with "invalid JSON". Emitting raw UTF-8 also normalises escapes a
+    # client sent itself, because json.loads has already decoded them.
     try:
-        frame = json.dumps(json.loads(body.decode("utf-8")), separators=(",", ":")).encode("utf-8")
+        frame = json.dumps(
+            json.loads(body.decode("utf-8")),
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ).encode("utf-8")
     except Exception:
         frame = b" ".join(body.split())
 

@@ -84,6 +84,7 @@ def setup_credentials():
             "location": "global",
             "model": { "default": "gemini-3-pro-image" },
             "output": { "directory": "./generated" },
+            "system_prompts": { "directory": "./system_prompts", "enabled": True },
             "credentials": { "source": "auto" },
             "auth": { "type": "service_account", "credentials_file": "config/gcp-service-account.json" }
         }
@@ -98,6 +99,7 @@ def setup_credentials():
                 "api_key": key,
                 "model": { "default": "gemini-3-pro-image" },
                 "output": { "directory": "./generated" },
+                "system_prompts": { "directory": "./system_prompts", "enabled": True },
                 "credentials": { "source": "auto" }
             }
             with open(gemini_cfg, "w", encoding="utf-8") as f:

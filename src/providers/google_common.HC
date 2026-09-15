@@ -35,6 +35,15 @@ U8 *GBuildInteractionsBody(U8 *model_id, ImageRequest *req)
   SbCatJson(sb, model_id);
   SbCat(sb, ",\"input\":[");
 
+  /* The Interactions surface has no separate system field, so the house style
+   * leads the input as its own text block - which is what the model reads
+   * first either way. */
+  if (req->system_prompt != NULL && req->system_prompt[0] != 0) {
+    SbCat(sb, "{\"type\":\"text\",\"text\":");
+    SbCatJson(sb, req->system_prompt);
+    SbCat(sb, "},");
+  }
+
   if (req->input_b64 != NULL) {
     SbCat(sb, "{\"type\":\"image\",\"mime_type\":");
     U8 *mime = req->input_mime;
@@ -83,7 +92,15 @@ U8 *GBuildGenerateBody(ImageRequest *req)
 
   SbCat(sb, "{\"text\":");
   SbCatJson(sb, req->prompt);
-  SbCat(sb, "}]}],\"generationConfig\":{\"responseModalities\":[\"IMAGE\"]");
+  SbCat(sb, "}]}]");
+
+  if (req->system_prompt != NULL && req->system_prompt[0] != 0) {
+    SbCat(sb, ",\"systemInstruction\":{\"parts\":[{\"text\":");
+    SbCatJson(sb, req->system_prompt);
+    SbCat(sb, "}]}");
+  }
+
+  SbCat(sb, ",\"generationConfig\":{\"responseModalities\":[\"IMAGE\"]");
 
   Bool has_image_config = FALSE;
   if (req->aspect_ratio != NULL || req->image_size != NULL || req->mime_type != NULL) {

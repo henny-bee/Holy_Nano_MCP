@@ -66,6 +66,7 @@ U8 *ImagePersist(ImageResult *r, HnConfig *c, U8 *requested_path, U8 *stem)
 ImageResult *ImageGenerate(AIProvider *p, HnConfig *c, ImageRequest *req,
                            U8 *requested_path)
 {
+  SysPromptApply(c, req, SYS_PROMPT_T2I);
   ImageResult *r = p->GenerateImage(p, req);
   if (!r->ok) return r;
 

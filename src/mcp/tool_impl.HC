@@ -29,7 +29,7 @@ U8 *ToolErrorJson(I64 code, U8 *message)
   return SbSteal(sb);
 }
 
-U8 *ToolImageResultJson(ImageResult *r)
+U8 *ToolImageResultJson(ImageResult *r, ImageRequest *req)
 {
   StrBuf *sb = SbNew(512);
   SbCat(sb, "{\"success\":true,\"path\":");
@@ -43,6 +43,10 @@ U8 *ToolImageResultJson(ImageResult *r)
   if (r->width > 0) {
     SbCat(sb, ",\"width\":");  SbCatI64(sb, r->width);
     SbCat(sb, ",\"height\":"); SbCatI64(sb, r->height);
+  }
+  if (req != NULL && req->system_prompt_source != NULL) {
+    SbCat(sb, ",\"system_prompt\":");
+    SbCatJson(sb, req->system_prompt_source);
   }
   if (r->text != NULL && r->text[0] != 0) {
     SbCat(sb, ",\"text\":");
@@ -79,7 +83,7 @@ U8 *ToolGenerateImage(Json *args, Bool *is_error)
 
   U8 *text = NULL;
   if (r->ok) {
-    text = ToolImageResultJson(r);
+    text = ToolImageResultJson(r, req);
   } else {
     *is_error = TRUE;
     text = ToolErrorJson(r->error_code, r->error);
@@ -107,7 +111,7 @@ U8 *ToolEditImage(Json *args, Bool *is_error)
 
   U8 *text = NULL;
   if (r->ok) {
-    text = ToolImageResultJson(r);
+    text = ToolImageResultJson(r, req);
   } else {
     *is_error = TRUE;
     text = ToolErrorJson(r->error_code, r->error);
@@ -185,6 +189,8 @@ U8 *ToolProviderStatus(Json *args, Bool *is_error)
   SbCat(sb, SaKindName(c->repo_cred_kind));
   SbCat(sb, "\nOutput directory: ");
   SbCat(sb, c->output_dir);
+
+  SysPromptStatus(sb, c);
 
   SbCat(sb, "\nHTTPS backend: ");
   if (HttpClientAvailable()) {

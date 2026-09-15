@@ -5,7 +5,7 @@
 
 BIN      := build/holy-nano-mcp
 SRC      := $(shell find src -name '*.HC')
-TESTS    := test_json test_mcp test_auth test_provider
+TESTS    := test_json test_mcp test_auth test_provider test_prompts
 TEST_BINS := $(addprefix build/,$(TESTS))
 
 .PHONY: all build test unit integration clean status toolchain help

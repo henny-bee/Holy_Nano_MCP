@@ -27,6 +27,7 @@ ImageResult *ImageEdit(AIProvider *p, HnConfig *c, ImageRequest *req,
   req->input_b64 = b64;
   req->input_mime = StrDup(mime);
 
+  SysPromptApply(c, req, SYS_PROMPT_IT2I);
   ImageResult *r = p->EditImage(p, req);
   if (!r->ok) return r;
 

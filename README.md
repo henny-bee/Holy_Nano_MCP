@@ -79,6 +79,33 @@ Then reopen your terminal.
 
 ---
 
+## System Prompts
+
+Every image call carries a system prompt, picked automatically from the shape of
+the call. The prompts are plain Markdown in `system_prompts/`, so changing the
+house style means editing a file - no rebuild, no restart, and nothing for the
+calling model to pass in.
+
+| File | Mode | Used by |
+|---|---|---|
+| `system_prompts/text_to_image.md` | text -> image | `generate_image` |
+| `system_prompts/image_and_text_to_image.md` | image + text -> image | `edit_image` |
+
+A YAML front matter block at the top of a file is stripped and never sent, so it
+is a safe place for notes. The rest of the file goes out verbatim - as
+`systemInstruction` on `generateContent`, or as the leading `input` block on the
+Interactions API. Emptying or deleting a file simply sends no system prompt.
+
+`holy-nano status` prints the folder in use and the size of each prompt, and
+every successful result names the file it used in its `system_prompt` field.
+
+To point somewhere else, set `"system_prompts": { "directory": "...", "enabled":
+true }` in your config, `HOLY_NANO_MCP_SYSTEM_PROMPT_DIR`, or
+`--system-prompt-dir`. `--no-system-prompts` turns them off entirely. See
+[system_prompts/README.md](system_prompts/README.md) for the full reference.
+
+---
+
 ## MCP Client Configuration
 
 ### Method 1: HTTP / SSE (Recommended)
@@ -163,6 +190,7 @@ For detailed technical references, see the documentation in `docs/`:
 - [Configuration Guide](docs/CONFIGURATION.md) - Detailed options, precedence, and CLI flags
 - [Supported Models](docs/MODELS.md) - Model matrix, latency, and tool parameter specs
 - [Security & Privacy](docs/SECURITY.md) - Credential isolation, secret hygiene, and permissions
+- [System Prompts](system_prompts/README.md) - Editing the per-mode house style
 - [Architecture & Foundation](docs/PHASE0.md) - System architecture and compiler design
 
 ---
