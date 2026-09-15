@@ -19,11 +19,12 @@ WSL2 with Ubuntu and `curl` (Windows hosts), `hcc` for building (`make toolchain
 
 ### Windows (Automated CLI)
 
-Run from the project root:
-```cmd
-holy-nano setup
-```
-*(Or run `setup.bat`)*
+Open a terminal **in the project root** and run the installer:
+
+| Your shell | Command |
+|---|---|
+| Command Prompt (`cmd.exe`) | `holy-nano setup` |
+| PowerShell | `.\holy-nano setup` |
 
 This automatically:
 1. Builds the HolyC binary in WSL (with zero Hyper-V background overhead).
@@ -31,11 +32,35 @@ This automatically:
 3. Automatically injects MCP settings into Cline, Claude Desktop, Cursor, and Roo Code.
 4. Verifies provider connectivity.
 
-To start the server:
-```cmd
-holy-nano start
+Then start the server:
+
+| Your shell | Command |
+|---|---|
+| Command Prompt (`cmd.exe`) | `holy-nano start` |
+| PowerShell | `.\holy-nano start` |
+
+*(No terminal? Just double-click `setup.bat`, then `start_sse.bat`.)*
+
+#### Why the `.\` in PowerShell?
+
+PowerShell never runs a program from the current folder, so typing `holy-nano start`
+there fails with:
+
 ```
-*(Or run `start_sse.bat`)*
+holy-nano : The term 'holy-nano' is not recognized as the name of a cmdlet,
+function, script file, or operable program.
+```
+
+That is not an error in Holy Nano - the `.\` prefix is what tells PowerShell to look
+in the current folder. To type `holy-nano` anywhere without the prefix, add the repo
+to your PATH once:
+
+```powershell
+[Environment]::SetEnvironmentVariable(
+  "Path", $env:Path + ";C:\path\to\HOLY_NANO_MCP", "User")
+```
+
+Then reopen your terminal.
 
 ---
 
@@ -125,6 +150,9 @@ On Windows both paths are read by WSL, so they must be WSL paths (`/mnt/d/projec
 | `holy-nano start` | Start the localhost SSE server bridge |
 | `holy-nano status` | Display resolved provider and credential status |
 | `holy-nano test` | Run HolyC unit and integration tests |
+
+Run these from the project root. In PowerShell, prefix them with `.\` (e.g.
+`.\holy-nano start`) - see [Why the `.\` in PowerShell?](#why-the--in-powershell).
 
 ---
 
