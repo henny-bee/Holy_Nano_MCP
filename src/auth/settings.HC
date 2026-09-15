@@ -159,7 +159,7 @@ Json *CfgReadFile(U8 *path)
   if (!path) return NULL;
   if (!PathExists(path)) return NULL;
   I64 size = 0;
-  U8 *raw = FileRead(path, &size);
+  U8 *raw = ReadFdFile(path, &size);
   if (!raw) return NULL;
   if (size <= 0) { Free(raw); return NULL; }
   Json *doc = JsonParse(raw, size);
