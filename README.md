@@ -1,239 +1,281 @@
 # Holy Nano MCP
 
-An MCP server written in **HolyC** for Google's Nano Banana image-generation
-models, with support for both the Gemini API / AI Studio and Vertex AI.
+An MCP (Model Context Protocol) server written in **HolyC** for Google's Nano Banana image-generation models, supporting both **Vertex AI** (GCP Service Account) and **Gemini API** (AI Studio).
 
 ```
-        MCP client                    HolyC MCP server                Google
+        MCP Client                    HolyC MCP Server                Google
     ┌────────────────┐            ┌──────────────────────┐        ┌───────────┐
-    │ Claude / agent │──stdio────▶│ protocol → tools     │        │ Gemini    │
-    │ IDE / MCP host │◀──JSON-RPC─│ → config → provider  │──curl─▶│ or Vertex │
-    └────────────────┘            └──────────────────────┘        └───────────┘
+    │ Claude / Cline │──stdio────▶│ Protocol → Tools     │        │ Vertex AI │
+    │ VS Code / IDE  │◀──JSON-RPC─│ → Config → Provider  │──curl─▶│    or     │
+    └────────────────┘            └──────────────────────┘        │ Gemini    │
+                                                                  └───────────┘
 ```
 
-The MCP layer knows tools and JSON-RPC and nothing about Google. The provider
-layer knows endpoints, auth and schemas and nothing about MCP. That separation
-is the point of the design, and it is what makes `FakeProvider` — and therefore
-the test suite — possible without a network or a key.
+---
 
-## Tools
+## ⚡ Quick Setup Guide
 
-| Tool | What it does |
-|---|---|
-| `generate_image` | Generate an image from a prompt and save it to disk |
-| `edit_image` | Edit an image on disk with a prompt |
-| `list_models` | List model aliases and the Google model ids they map to |
-| `provider_status` | Report provider, model, credential source and HTTPS backend |
-| `security_check` | Check repo-local credentials are present, valid and not exposed |
-
-```jsonc
-// generate_image
-{
-  "prompt": "A futuristic cyberpunk city",
-  "model": "nano-banana-2",
-  "aspect_ratio": "16:9",
-  "image_size": "2K",
-  "output_path": "./generated/city.png"
-}
-// → {"success":true,"path":"./generated/city.png","mime_type":"image/png",
-//    "model":"gemini-3.1-flash-image","provider":"gemini","width":1920,"height":1080}
+### 🪟 Windows One-Command Setup (Automated)
+Run this single command from the project root:
+```cmd
+holy-nano setup
 ```
+*(Or double-click `setup.bat`)*
 
-```jsonc
-// edit_image
-{
-  "prompt": "Add rain and neon reflections",
-  "input_image": "./generated/city.png",
-  "output_path": "./generated/edited.png"
-}
+**What this does automatically:**
+1. ✅ Checks and compiles the HolyC binary in WSL (0% Hyper-V overhead).
+2. ✅ Guides you to configure Vertex AI or Gemini API key.
+3. ✅ **Auto-injects** MCP settings directly into Cline, Claude Desktop, Cursor, and Roo Code!
+4. ✅ Verifies credentials and server readiness.
+
+To start the server anytime:
+```cmd
+holy-nano start
 ```
+*(Or run `start_sse.bat`)*
 
-Only `prompt` is required for `generate_image`; `prompt` and `input_image` for
-`edit_image`. Everything else falls back to configuration.
+---
 
-## Models
+### 🐧 Manual Setup (Linux / macOS / WSL)
 
-| Alias | Google model | Notes |
-|---|---|---|
-| `nano-banana-2` | `gemini-3.1-flash-image` | Default. Generalist workhorse. |
-| `nano-banana-2-lite` | `gemini-3.1-flash-lite-image` | Fastest and cheapest. |
-| `nano-banana-pro` | `gemini-3-pro-image` | Highest quality and control. |
-| `nano-banana` | `gemini-2.5-flash-image` | Legacy. |
+### 1. Build the Binary
 
-An unrecognised name is passed through to the API unchanged, so a new model
-works before this table is updated. The mapping lives in
-`src/providers/models.HC`.
+- **Linux / macOS / WSL:**
+  ```bash
+  make toolchain     # First time only (installs hcc compiler)
+  make build         # Compiles to build/holy-nano-mcp
+  make test          # Runs tests
+  ```
 
-## Install
+- **Windows (PowerShell):**
+  ```powershell
+  .\scripts\build.ps1 -Toolchain   # First time only (installs inside WSL2)
+  .\scripts\build.ps1
+  .\scripts\build.ps1 -Test
+  ```
 
-The compiler is [holyc-lang](https://github.com/Jamesbarford/holyc-lang)
-(`hcc`). On Windows everything runs inside WSL2 — see
-[docs/PHASE0.md](docs/PHASE0.md) for why.
+---
 
-**Linux / macOS / WSL2**
+### 2. Configure Credentials
 
-```sh
-make toolchain     # installs hcc (needs git, cmake, make, a C compiler)
-make build         # → build/holy-nano-mcp
-make test          # unit tests + mock-API integration tests
-```
+Choose either **Option A** (Google Cloud Vertex AI) or **Option B** (Gemini API Key):
 
-**Windows PowerShell**
+#### Option A: Vertex AI (Google Cloud Service Account) — *Recommended*
+1. Place your GCP Service Account JSON key at `config/gcp-service-account.json`.
+2. Edit `config/vertex.json` and set your GCP `project_id`:
+   ```json
+   {
+     "provider": "vertex",
+     "project_id": "your-gcp-project-id",
+     "location": "global",
+     "model": {
+       "default": "nano-banana-pro"
+     },
+     "output": {
+       "directory": "./generated"
+     },
+     "auth": {
+       "type": "service_account",
+       "credentials_file": "config/gcp-service-account.json"
+     }
+   }
+   ```
 
-```powershell
-.\scripts\build.ps1 -Toolchain   # first time only
-.\scripts\build.ps1
-.\scripts\build.ps1 -Test
-```
-
-`curl` must be on `PATH` at runtime: it provides TLS, which HolyC does not
-have. `provider_status` reports whether it was found.
-
-## Configure
-
-### Credentials
-
-Resolution order, stopping at the first hit:
-
-```
-1. explicit MCP configuration   --config <file>, $HOLY_NANO_MCP_CONFIG,
-                                ~/.config/holy-nano-mcp/config.json
-        │
-2. ./service-account.json       repository-local
-        │
-3. environment variables        GEMINI_API_KEY, GOOGLE_API_KEY,
-                                HOLY_NANO_MCP_API_KEY,
-                                GOOGLE_APPLICATION_CREDENTIALS
-        │
-4. error                        reported by the tool that needed it
-```
-
-Pin the search to one layer with `--credentials-source mcp|repo|env`, or
-`"credentials": {"source": "repo"}` in a config file. `auto` is the default.
-
-**`service-account.json` means two different things.** It may hold this
-project's configuration, or a real Google Cloud service-account key. The server
-tells them apart by shape — a real key has `type: "service_account"`,
-`private_key` and `client_email` — and models them as different credential
-types. `security_check` and `provider_status` both report which one it found.
-
-### Gemini API / AI Studio
-
-```json
-{ "provider": "gemini", "api_key": "AIza...", "model": { "default": "nano-banana-2" } }
-```
-
-Or leave the key out of the file entirely and export `GEMINI_API_KEY`.
-
-### Vertex AI
-
+#### Option B: Gemini API Key (Google AI Studio)
+Set the `GEMINI_API_KEY` environment variable in your MCP client config, or specify it in `config/gemini.json`:
 ```json
 {
-  "provider": "vertex",
-  "project_id": "my-project",
-  "location": "global",
-  "auth": { "type": "service_account", "credentials_file": "./gcp-service-account.json" }
-}
-```
-
-Three auth modes:
-
-- **`api_key`** — Vertex express mode. No `project_id` or `location` needed.
-- **`access_token`** — a bearer token you supply.
-- **`service_account` / `adc`** — the token is minted by `gcloud auth
-  print-access-token`. HolyC has no RS256 signing, so the gcloud CLI does that
-  work; it must be installed and authenticated. `project_id` is required.
-
-### MCP client
-
-```json
-{
-  "mcpServers": {
-    "holy-nano": {
-      "command": "wsl.exe",
-      "args": ["-d", "Ubuntu", "-e", "/mnt/d/projects/HOLY_NANO_MCP/build/holy-nano-mcp",
-               "--output-dir", "./generated"],
-      "env": { "GEMINI_API_KEY": "AIza..." }
-    }
+  "provider": "gemini",
+  "api_key": "your-gemini-api-key",
+  "model": {
+    "default": "nano-banana-2"
+  },
+  "output": {
+    "directory": "./generated"
   }
 }
 ```
 
-On Linux, drop the `wsl.exe` wrapper and point `command` at the binary.
+---
 
-### Options
+### 3. Add to MCP Client (Cline / Claude Desktop / VS Code)
 
-| Flag | Config key | Env | Default |
+You can connect via **HTTP / SSE** (simple `localhost:4392` URL) or **Direct Stdio Command**:
+
+#### Option 1: HTTP / SSE Transport (`localhost:4392/holy-nano`) — *Easiest & Cleanest*
+
+1. Start the SSE server bridge (in PowerShell / Command Prompt / Terminal):
+   ```cmd
+   start_sse.bat
+   # or: python scripts/holy_server.py
+   ```
+2. Configure your MCP settings (`cline_mcp_settings.json`):
+   ```json
+   {
+     "mcpServers": {
+       "holy-nano": {
+         "url": "http://localhost:4392/holy-nano",
+         "timeout": 180,
+         "autoApprove": [
+           "generate_image",
+           "edit_image",
+           "list_models",
+           "provider_status",
+           "security_check"
+         ]
+       }
+     }
+   }
+   ```
+
+#### Option 2: Direct Stdio Command (WSL2 / Linux)
+
+- **On Windows (via WSL2)**:
+  ```json
+  {
+    "mcpServers": {
+      "holy-nano": {
+        "command": "wsl.exe",
+        "args": [
+          "-d", "Ubuntu",
+          "-e", "/mnt/d/projects/HOLY_NANO_MCP/build/holy-nano-mcp",
+          "--config", "/mnt/d/projects/HOLY_NANO_MCP/config/vertex.json"
+        ],
+        "timeout": 180,
+        "autoApprove": [
+          "generate_image",
+          "edit_image",
+          "list_models",
+          "provider_status",
+          "security_check"
+        ]
+      }
+    }
+  }
+  ```
+
+- **On Linux / macOS**:
+  ```json
+  {
+    "mcpServers": {
+      "holy-nano": {
+        "command": "/path/to/HOLY_NANO_MCP/build/holy-nano-mcp",
+        "args": ["--config", "/path/to/HOLY_NANO_MCP/config/vertex.json"],
+        "timeout": 180
+      }
+    }
+  }
+  ```
+
+---
+
+### 4. Verify Installation
+
+Check connection and credentials directly from terminal:
+
+```bash
+# WSL / Linux
+./build/holy-nano-mcp --status --config config/vertex.json
+```
+
+Output should report `Status: OK`.
+
+---
+
+## 🛠️ MCP Tools
+
+| Tool | Description | Required Parameters |
+|---|---|---|
+| `generate_image` | Generate an image from a prompt and save to disk | `prompt` |
+| `edit_image` | Edit an existing image with text instructions | `prompt`, `input_image` |
+| `list_models` | List supported model aliases and mapped Google IDs | *None* |
+| `provider_status`| Check active provider, model, auth status, and curl backend | *None* |
+| `security_check` | Audit credential security, file permissions, and `.gitignore` | *None* |
+
+### Example Tool Calls
+
+**Generate Image:**
+```jsonc
+{
+  "prompt": "A futuristic cyberpunk car driving through rain in Tokyo",
+  "model": "nano-banana-pro",
+  "aspect_ratio": "16:9",
+  "image_size": "2K"
+}
+```
+
+**Edit Image:**
+```jsonc
+{
+  "input_image": "./generated/car.png",
+  "prompt": "Change the lighting to golden hour sunset and add lens flare",
+  "output_path": "./generated/car-sunset.png"
+}
+```
+
+---
+
+## 🎨 Supported Models
+
+| Alias | Google Model ID | Best For |
+|---|---|---|
+| `nano-banana-2` | `gemini-3.1-flash-image` | Default. Fast general image generation & text rendering. |
+| `nano-banana-2-lite` | `gemini-3.1-flash-lite-image` | Fastest and cheapest. |
+| `nano-banana-pro` | `gemini-3-pro-image` | Highest fidelity, world knowledge & creative control. |
+| `nano-banana` | `gemini-2.5-flash-image` | Legacy compatibility. |
+
+---
+
+## ⚙️ CLI Options & Flags
+
+| Flag | Config Key | Environment Variable | Default |
 |---|---|---|---|
+| `--config` | — | `HOLY_NANO_MCP_CONFIG` | `~/.config/holy-nano-mcp/config.json` |
 | `--provider` | `provider` | `HOLY_NANO_MCP_PROVIDER` | `gemini` |
 | `--model` | `model.default` | `HOLY_NANO_MCP_MODEL` | `nano-banana-2` |
 | `--output-dir` | `output.directory` | `HOLY_NANO_MCP_OUTPUT_DIR` | `./generated` |
-| `--overwrite` | `output.overwrite` | — | off |
+| `--overwrite` | `output.overwrite` | — | `false` |
 | `--project-id` | `project_id` | `GOOGLE_CLOUD_PROJECT` | — |
 | `--location` | `location` | `GOOGLE_CLOUD_LOCATION` | `global` |
-| `--api-style` | `api_style` | — | `interactions` |
-| `--api-version` | `api_version` | — | `v1beta` |
-| `--endpoint` | `endpoint` | — | — |
-| `--credentials-source` | `credentials.source` | — | `auto` |
-| `--log-level` | `log_level` | `HOLY_NANO_MCP_LOG_LEVEL` | `info` |
-| `--config` | — | `HOLY_NANO_MCP_CONFIG` | `~/.config/holy-nano-mcp/config.json` |
-| `--status` | — | — | — |
+| `--status` | — | — | (Prints status and exits) |
 
-Without `--overwrite`, writing to an existing path picks `name-1.png`,
-`name-2.png` and so on instead of replacing it.
+---
 
-There is deliberately **no `--api-key` flag**. Command lines are readable by
-every process on the machine.
+## 🔒 Security & Privacy
 
-## Security
+- **Safe Secret Handling**: Secrets are never passed via command-line arguments (`argv`). Auth tokens are sent to `curl` through temporary secure `0600` config files in a `0700` directory, deleted immediately after use.
+- **No Leaks in Logs**: API keys and tokens are automatically redacted from logs and MCP responses (`Redact()`).
+- **Standard Stdio Isolation**: Logs go to **stderr** only; standard stdout is reserved purely for MCP JSON-RPC messages.
+- **Git Protection**: `.gitignore` ensures credentials (`config/gcp-service-account.json`, `*.key`, `*.pem`, `.env`) are never tracked.
+- **Audit Tool**: The `security_check` tool verifies local credentials exist, parse correctly, and are properly protected.
 
-- The key never reaches `argv`. It travels to `curl` through a `0600` config
-  file in a `0700` directory, which is deleted after the request.
-- The key never reaches a log line or an MCP response. `Redact()` returns at
-  most a 4-character prefix, and nothing at all for short secrets.
-- Logs go to **stderr** only; stdout is the JSON-RPC transport.
-- `.gitignore` covers `service-account.json`, `*.key`, `*.pem` and `.env`.
-- `security_check` verifies the credential file is present, parses, is not
-  tracked by git, and is covered by `.gitignore`.
+---
 
-`scripts/run-tests.sh` asserts each of these rather than trusting them.
+## 🧪 Testing
 
-## Layout
+```bash
+make unit   # Run HolyC unit test suite (198 tests)
+make test   # Run unit tests + mock stdio integration tests
+```
+
+---
+
+## 📁 Project Structure
 
 ```
 src/
-  main.HC              include order = dependency order; the whole build
-  mcp/                 jsonrpc, protocol, tool registry, tool handlers, stdio server
-  providers/           provider interface, model aliases, gemini, vertex, fake
-  auth/                credentials, service-account inspection, config loading
-  http/                request, response, curl-backed client
-  image/               base64, output paths, generate and edit pipelines
-  utils/               strings and JSON output, logging, errors, argv, libc
-tests/                 HolyC unit suites + a mock Google API
-scripts/               build, test, toolchain install
-docs/PHASE0.md         target, TLS strategy, compiler gotchas
+  main.HC              Main entrypoint & dependency includes
+  mcp/                 JSON-RPC 2.0 protocol, tool handlers, stdio server
+  providers/           Gemini, Vertex AI, and fake test providers
+  auth/                Credentials, GCP Service Account parser, config loader
+  http/                CURL-backed HTTPS client
+  image/               Base64 encoder/decoder, output file managers
+  utils/               JSON formatting, logging, string helpers
+tests/                 HolyC unit tests & mock Google API server
 ```
 
-## Tests
+---
 
-```sh
-make unit   # HolyC unit tests only, no network
-make test   # + stdio integration against tests/mock_google.py
-```
-
-The mock serves both the Interactions and `generateContent` response shapes,
-plus forced API errors and text-only replies, and records every request so the
-tests can assert on the headers and body the server actually sent.
-
-## Adding a provider
-
-1. Write `src/providers/yours.HC` exposing `YoursProviderNew(HnConfig *c)` that
-   fills in `GenerateImage`, `EditImage`, `GetModelInfo` and `ValidateConfig`.
-2. Add one branch to `ProviderResolve` in `src/providers/resolve.HC`.
-3. Add the include to `src/main.HC`.
-
-Nothing in `src/mcp/` changes.
-
-## License
+## 📄 License
 
 MIT. See [LICENSE](LICENSE).

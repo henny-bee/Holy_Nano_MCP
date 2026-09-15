@@ -2,6 +2,9 @@
 service-account.json
 *-service-account.json
 gcp-service-account.json
+config/gemini.json
+config/vertex.json
+config/gcp-service-account.json
 *.key
 *.pem
 .env
