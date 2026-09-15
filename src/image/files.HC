@@ -114,7 +114,7 @@ U8 *WriteImageFile(U8 *path, U8 *data, I64 len)
   if (!EnsureParentDir(path)) {
     return StrPrint(NULL, "could not create directory for %s", path);
   }
-  if (!FileWrite(path, data, len)) {
+  if (!WriteFdFile(path, data, len)) {
     return StrPrint(NULL, "could not write %s", path);
   }
   return NULL;
@@ -125,7 +125,7 @@ U8 *ReadImageAsBase64(U8 *path, U8 **out_mime)
 {
   if (!PathExists(path)) return NULL;
   I64 len = 0;
-  U8 *raw = FileRead(path, &len);
+  U8 *raw = ReadFdFile(path, &len);
   if (!raw) return NULL;
   if (len <= 0) { Free(raw); return NULL; }
   U8 *b64 = B64Encode(raw, len);
