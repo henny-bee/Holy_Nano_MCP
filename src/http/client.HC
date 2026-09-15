@@ -99,7 +99,7 @@ HttpResponse *HttpSend(HttpRequest *req)
   }
 
   if (req->body != NULL && req->body_len > 0) {
-    FileWrite(body_path, req->body, req->body_len);
+    WriteFdFile(body_path, req->body, req->body_len, MODE_0600);
     chmod(body_path, MODE_0600);
     U8 *ref = StrPrint(NULL, "@%s", body_path);
     SbCat(cfg, "data-binary = ");
@@ -108,7 +108,7 @@ HttpResponse *HttpSend(HttpRequest *req)
     Free(ref);
   }
 
-  FileWrite(cfg_path, cfg->buf, cfg->len);
+  WriteFdFile(cfg_path, cfg->buf, cfg->len, MODE_0600);
   chmod(cfg_path, MODE_0600);
   SbRelease(cfg);
 
@@ -120,7 +120,7 @@ HttpResponse *HttpSend(HttpRequest *req)
   Free(cmd);
 
   I64 status_len = 0;
-  U8 *status_raw = FileRead(status_path, &status_len);
+  U8 *status_raw = ReadFdFile(status_path, &status_len);
   if (status_raw != NULL && status_len > 0) {
     U8 *trimmed = StrTrimDup(status_raw);
     res->status = Atoi(trimmed);
@@ -129,7 +129,7 @@ HttpResponse *HttpSend(HttpRequest *req)
   if (status_raw) Free(status_raw);
 
   I64 body_len = 0;
-  U8 *body = FileRead(out_path, &body_len);
+  U8 *body = ReadFdFile(out_path, &body_len);
   if (body != NULL) {
     res->body = body;
     res->body_len = body_len;
@@ -140,7 +140,7 @@ HttpResponse *HttpSend(HttpRequest *req)
 
   if (res->status == 0) {
     I64 err_len = 0;
-    U8 *err = FileRead(err_path, &err_len);
+    U8 *err = ReadFdFile(err_path, &err_len);
     U8 *detail = NULL;
     if (err != NULL && err_len > 0) detail = StrTrimDup(err);
     else detail = StrPrint(NULL, "curl exited with %d", rc);
