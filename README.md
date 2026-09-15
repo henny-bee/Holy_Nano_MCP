@@ -3,7 +3,7 @@
 An MCP (Model Context Protocol) server written in HolyC for Google's Nano Banana image-generation models, supporting both Google Cloud Vertex AI (Service Account) and Gemini API (AI Studio).
 
 
-<img width="1089" height="432" alt="image" src="https://github.com/user-attachments/assets/d84f4af0-bc17-4f44-99f0-ef5002d6ecc7" />
+<img width="1089" height="432" alt="HolyC MCP, Nano Banana MCP server" src="https://github.com/user-attachments/assets/d84f4af0-bc17-4f44-99f0-ef5002d6ecc7" />
 
 
 
